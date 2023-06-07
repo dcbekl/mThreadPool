@@ -1,0 +1,9 @@
+/.vscode
+/demo
+
+/mThreadPool/.vs
+/mThreadPool/x64
+/mThreadPool/*.sln
+/mThreadPool/*.vcxproj
+/mThreadPool/*.filters
+/mThreadPool/*.user
