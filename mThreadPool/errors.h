@@ -45,5 +45,6 @@ char const* MTheadPoolError<T>::what() const
     default:
         break;
     }
+    return "None";
 }
 

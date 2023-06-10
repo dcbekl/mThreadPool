@@ -8,9 +8,11 @@
 #include <condition_variable>
 #include <chrono>
 #include <memory>
+#include <future>
+#include <typeinfo>
 #include "SafeQueue.h"
 
-#define MIN_POOL_SIZE 10                    /*线程池初始最少创建 10 个线程*/
+#define MIN_POOL_SIZE 2                   /*线程池初始最少创建 10 个线程*/
 const int DEFAULT_TIME = 300;               /*300ms检测一次*/
 const int MIN_WAIT_TASK_NUM = 10;           /*如果queue_size > MIN_WAIT_TASK_NUM 添加新的线程到线程池*/
 const int DEFAULT_THREAD_VARY = 10;         /*每次创建和销毁线程的个数*/
@@ -66,6 +68,12 @@ private:
         }
         ~mThreadWorker() { std::cout << "子线程 " << m_id << " 关闭\n"; }
     };
+
+    static void fff()
+    {
+        std::cout << "hello" << std::endl;
+        return;
+    }
 public:
     // 创建线程池
     mThreadPool();
@@ -76,7 +84,30 @@ public:
     void stop() { this->m_stop.store(true); } // 停止任务提交
     void restart() { this->m_stop.store(false); } // 重启任务提交
     void shutdown(); // 关闭线程池
-    void addtask(std::function<void()> task); // 添加任务
+
+public:
+    //void addtask(std::function<void()> task); // 添加任务
+    template <typename F, typename... Args>
+    auto addtask(F&& fun, Args&& ...args)->std::future<decltype(fun(args...))>
+    {
+        if (!m_stop) {
+            auto f = std::bind(std::forward<F>(fun), std::forward<Args>(args)...);           // 获得新函数
+            auto task_ptr = std::make_shared<std::packaged_task<decltype(f())()>>(f);       // 获得指向 package_task 的指针
+            std::function<void()> task_func = [task_ptr]() { (*task_ptr) (); };            // 包装 package_task, 获得一个 function<void()> 的函数
+            std::cout << "添加一个任务" << exc_num + 1 << std::endl;
+
+            //m_queue.Push(task_func);
+            //task_func();
+            m_queue.Push(std::function<void()>(task_func));
+            exc_num++;
+            m_con.notify_one();
+
+            return std::move(task_ptr->get_future());
+        }
+
+        return std::future<decltype(fun(args...))>();
+    }
+    
 
 private:
     // 管理线程

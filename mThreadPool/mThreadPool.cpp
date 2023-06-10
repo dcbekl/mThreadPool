@@ -51,14 +51,3 @@ void mThreadPool::shutdown()
     // 3、关闭管理线程  -- 管理线程退出前会关闭所有的工作线程
     ManagerThread_ptr->join();
 }
-
-// 添加任务
-void mThreadPool::addtask(std::function<void()> task)
-{ 
-    if (!m_stop) {
-        m_queue.Push(task);
-        std::cout << "添加一个任务" << exc_num+1 << std::endl;
-        exc_num++;
-        m_con.notify_one();
-    }
-}
